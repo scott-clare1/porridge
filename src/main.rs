@@ -1,4 +1,4 @@
-use porddige::types::{Database, Vector};
+use porddige::types::{Database, EmbeddingEntry};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
@@ -10,7 +10,7 @@ use warp::Filter;
 #[tokio::main]
 async fn main() {
     let db = Database {
-        vectors: Arc::new(Mutex::new(HashMap::new())),
+        contents: Arc::new(Mutex::new(HashMap::new())),
     };
 
     let db_filter = warp::any().map(move || db.clone());
@@ -19,10 +19,10 @@ async fn main() {
         .and(path("vectors"))
         .and(warp::body::json())
         .and(db_filter.clone())
-        .map(|new_vector: Vector, db: Database| {
-            let mut vectors = db.vectors.lock().unwrap();
-            let id = new_vector.id;
-            vectors.insert(id, new_vector);
+        .map(|new_entry: EmbeddingEntry, db: Database| {
+            let mut vectors = db.contents.lock().unwrap();
+            let id = new_entry.id;
+            vectors.insert(id, new_entry);
             json(&id)
         });
 
@@ -31,7 +31,7 @@ async fn main() {
         .and(path::param::<Uuid>())
         .and(db_filter.clone())
         .map(|id: Uuid, db: Database| {
-            let vectors = db.vectors.lock().unwrap();
+            let vectors = db.contents.lock().unwrap();
             if let Some(vector) = vectors.get(&id) {
                 with_status(json(vector), StatusCode::OK)
             } else {

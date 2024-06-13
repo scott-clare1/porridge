@@ -6,12 +6,12 @@ use uuid::Uuid;
 pub type Embedding = Vec<f32>;
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct Vector {
+pub struct EmbeddingEntry {
     pub id: Uuid,
     pub values: Embedding,
 }
 
 #[derive(Clone)]
 pub struct Database {
-    pub vectors: Arc<Mutex<HashMap<Uuid, Vector>>>,
+    pub contents: Arc<Mutex<HashMap<Uuid, EmbeddingEntry>>>,
 }
