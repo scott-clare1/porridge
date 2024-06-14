@@ -1,6 +1,10 @@
-use porddige::search::KNN;
-use porddige::similarity::CosineSimilarity;
-use porddige::types::{Database, EmbeddingEntry};
+mod search;
+mod similarity;
+mod types;
+
+use crate::search::KNN;
+use crate::similarity::CosineSimilarity;
+use crate::types::{Database, EmbeddingEntry};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
@@ -70,5 +74,5 @@ async fn main() {
 
     let routes = add_vector.or(get_vector).or(search_database).or(heartbeat);
 
-    warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
+    warp::serve(routes).run(([0, 0, 0, 0], 3030)).await;
 }
