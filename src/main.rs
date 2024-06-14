@@ -60,7 +60,14 @@ async fn main() {
             json(&nearest_neighbours)
         });
 
-    let routes = add_vector.or(get_vector).or(search_database);
+    let heartbeat = warp::get().and(path("heartbeat")).map(|| {
+        with_status(
+            json(&serde_json::json!({"status": "I am alive"})),
+            StatusCode::OK,
+        )
+    });
+
+    let routes = add_vector.or(get_vector).or(search_database).or(heartbeat);
 
     warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
 }
