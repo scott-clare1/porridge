@@ -1,3 +1,4 @@
+use serde::Serialize;
 use uuid::Uuid;
 
 use crate::similarity::CosineSimilarity;
@@ -5,9 +6,9 @@ use crate::types::{Embedding, EmbeddingEntry};
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap};
 
-#[derive(Debug)]
+#[derive(Serialize, Clone, Debug)]
 pub struct Neighbour<'b> {
-    pub index: &'b Uuid,
+    pub uuid: &'b Uuid,
     similarity: f32,
 }
 
@@ -58,9 +59,9 @@ impl<'a> KNN<'a> {
 
     pub fn search(self, query_vector: &'a Embedding) -> Vec<Neighbour> {
         let mut heap: BinaryHeap<Neighbour> = BinaryHeap::new();
-        for (index, vector) in self.database.iter() {
+        for (uuid, vector) in self.database.iter() {
             let similarity = CosineSimilarity.calculate(&vector.values, query_vector);
-            let neighbour = Neighbour { index, similarity };
+            let neighbour = Neighbour { uuid, similarity };
 
             heap = self.insert_neighbour(heap, neighbour);
         }
@@ -76,11 +77,11 @@ mod test_knn {
     #[test]
     fn test_partial_ord() {
         let neighbour_a = Neighbour {
-            index: &Uuid::new_v4(),
+            uuid: &Uuid::new_v4(),
             similarity: 0.9,
         };
         let neighbour_b = Neighbour {
-            index: &Uuid::new_v4(),
+            uuid: &Uuid::new_v4(),
             similarity: 0.8,
         };
         assert!(neighbour_a < neighbour_b);
@@ -95,7 +96,7 @@ mod test_knn {
         };
         let heap: BinaryHeap<Neighbour> = BinaryHeap::new();
         let neighbour = Neighbour {
-            index: &Uuid::new_v4(),
+            uuid: &Uuid::new_v4(),
             similarity: 0.1,
         };
         let actual_heap = search.insert_neighbour(heap, neighbour);
@@ -113,11 +114,11 @@ mod test_knn {
         let mut heap: BinaryHeap<Neighbour> = BinaryHeap::new();
         let id = Uuid::new_v4();
         heap.push(Neighbour {
-            index: &id,
+            uuid: &id,
             similarity: 0.1,
         });
         let neighbour = Neighbour {
-            index: &Uuid::new_v4(),
+            uuid: &Uuid::new_v4(),
             similarity: 0.2,
         };
         let actual_heap = search.insert_neighbour(heap, neighbour);
@@ -135,15 +136,15 @@ mod test_knn {
         let mut heap: BinaryHeap<Neighbour> = BinaryHeap::new();
         let id = Uuid::new_v4();
         heap.push(Neighbour {
-            index: &id,
+            uuid: &id,
             similarity: 0.5,
         });
         heap.push(Neighbour {
-            index: &id,
+            uuid: &id,
             similarity: 0.2,
         });
         let neighbour = Neighbour {
-            index: &Uuid::new_v4(),
+            uuid: &Uuid::new_v4(),
             similarity: 0.6,
         };
         let actual_heap = search.insert_neighbour(heap, neighbour);
@@ -161,15 +162,15 @@ mod test_knn {
         let mut heap: BinaryHeap<Neighbour> = BinaryHeap::new();
         let id = Uuid::new_v4();
         heap.push(Neighbour {
-            index: &id,
+            uuid: &id,
             similarity: 0.5,
         });
         heap.push(Neighbour {
-            index: &id,
+            uuid: &id,
             similarity: 0.2,
         });
         let neighbour = Neighbour {
-            index: &Uuid::new_v4(),
+            uuid: &Uuid::new_v4(),
             similarity: 0.3,
         };
         let actual_heap = search.insert_neighbour(heap, neighbour);

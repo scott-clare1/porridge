@@ -7,7 +7,6 @@ pub type Embedding = Vec<f32>;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct EmbeddingEntry {
-    pub id: Uuid,
     pub values: Embedding,
 }
 
