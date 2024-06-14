@@ -1,4 +1,5 @@
 use porddige::search::KNN;
+use porddige::similarity::CosineSimilarity;
 use porddige::types::{Database, EmbeddingEntry};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -55,7 +56,7 @@ async fn main() {
         .and(db_filter.clone())
         .map(|query_vector: EmbeddingEntry, db: Database| {
             let vectors = db.contents.lock().unwrap();
-            let search = KNN::new(&vectors, 2 as usize);
+            let search = KNN::new(&vectors, 2 as usize, CosineSimilarity);
             let nearest_neighbours = search.search(&query_vector.values);
             json(&nearest_neighbours)
         });

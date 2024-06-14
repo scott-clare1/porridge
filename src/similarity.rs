@@ -1,5 +1,9 @@
 use crate::types::Embedding;
 
+pub trait SimilarityMetric {
+    fn similarity(&self, a: &Embedding, b: &Embedding) -> f32;
+}
+
 pub struct CosineSimilarity;
 
 impl CosineSimilarity {
@@ -19,8 +23,10 @@ impl CosineSimilarity {
     fn get_similarity(&self, dot_product: &f32, (a_norm, b_norm): (&f32, &f32)) -> f32 {
         dot_product / (a_norm * b_norm)
     }
+}
 
-    pub fn calculate(&self, v1: &Embedding, v2: &Embedding) -> f32 {
+impl SimilarityMetric for CosineSimilarity {
+    fn similarity(&self, v1: &Embedding, v2: &Embedding) -> f32 {
         let v1_norm = self.calculate_norm(v1);
         let v2_norm = self.calculate_norm(v2);
         let dot_product = self.dot_product(v1, v2);

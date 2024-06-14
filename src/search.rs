@@ -1,7 +1,7 @@
 use serde::Serialize;
 use uuid::Uuid;
 
-use crate::similarity::CosineSimilarity;
+use crate::similarity::{CosineSimilarity, SimilarityMetric};
 use crate::types::{Embedding, EmbeddingEntry};
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap};
@@ -33,18 +33,23 @@ impl<'b> Ord for Neighbour<'b> {
 }
 
 #[derive(Clone, Copy)]
-pub struct KNN<'a> {
+pub struct KNN<'a, T: SimilarityMetric> {
     database: &'a HashMap<Uuid, EmbeddingEntry>,
     k: usize,
+    metric: T,
 }
 
-impl<'a> KNN<'a> {
-    pub fn new(database: &'a HashMap<Uuid, EmbeddingEntry>, k: usize) -> Self {
-        Self { database, k }
+impl<'a, T: SimilarityMetric> KNN<'a, T> {
+    pub fn new(database: &'a HashMap<Uuid, EmbeddingEntry>, k: usize, metric: T) -> Self {
+        Self {
+            database,
+            k,
+            metric,
+        }
     }
 
     fn insert_neighbour(
-        self,
+        &self,
         mut heap: BinaryHeap<Neighbour<'a>>,
         neighour: Neighbour<'a>,
     ) -> BinaryHeap<Neighbour<'a>> {
@@ -57,10 +62,10 @@ impl<'a> KNN<'a> {
         heap
     }
 
-    pub fn search(self, query_vector: &'a Embedding) -> Vec<Neighbour> {
+    pub fn search(&self, query_vector: &'a Embedding) -> Vec<Neighbour> {
         let mut heap: BinaryHeap<Neighbour> = BinaryHeap::new();
         for (uuid, vector) in self.database.iter() {
-            let similarity = CosineSimilarity.calculate(&vector.values, query_vector);
+            let similarity = self.metric.similarity(&vector.values, query_vector);
             let neighbour = Neighbour { uuid, similarity };
 
             heap = self.insert_neighbour(heap, neighbour);
@@ -93,6 +98,7 @@ mod test_knn {
         let search = KNN {
             database: &database,
             k: 2 as usize,
+            metric: CosineSimilarity,
         };
         let heap: BinaryHeap<Neighbour> = BinaryHeap::new();
         let neighbour = Neighbour {
@@ -110,6 +116,7 @@ mod test_knn {
         let search = KNN {
             database: &database,
             k: 2 as usize,
+            metric: CosineSimilarity,
         };
         let mut heap: BinaryHeap<Neighbour> = BinaryHeap::new();
         let id = Uuid::new_v4();
@@ -132,6 +139,7 @@ mod test_knn {
         let search = KNN {
             database: &database,
             k: 2 as usize,
+            metric: CosineSimilarity,
         };
         let mut heap: BinaryHeap<Neighbour> = BinaryHeap::new();
         let id = Uuid::new_v4();
@@ -158,6 +166,7 @@ mod test_knn {
         let search = KNN {
             database: &database,
             k: 2 as usize,
+            metric: CosineSimilarity,
         };
         let mut heap: BinaryHeap<Neighbour> = BinaryHeap::new();
         let id = Uuid::new_v4();
