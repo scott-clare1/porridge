@@ -5,7 +5,10 @@ mod types;
 use crate::search::KNN;
 use crate::similarity::CosineSimilarity;
 use crate::types::{Database, EmbeddingEntry};
+use log;
 use std::collections::HashMap;
+use std::env;
+use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
 use warp::http::StatusCode;
@@ -15,6 +18,16 @@ use warp::Filter;
 
 #[tokio::main]
 async fn main() {
+    let host = env::var("HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
+    let ipv4_addr: [u8; 4] = match host.parse::<Ipv4Addr>() {
+        Ok(ip) => ip.octets(),
+        Err(_) => panic!("Invalid IP address format"),
+    };
+    let port = env::var("PORT").unwrap_or_else(|_| "5000".to_string());
+
+    log::info!("Starting Vector Search Server.");
+    println!("API running on the following URL: http://{host}:{port}");
+
     let db = Database {
         contents: Arc::new(Mutex::new(HashMap::new())),
     };
@@ -74,5 +87,10 @@ async fn main() {
 
     let routes = add_vector.or(get_vector).or(search_database).or(heartbeat);
 
-    warp::serve(routes).run(([0, 0, 0, 0], 3030)).await;
+    let port = port.parse::<u16>().unwrap();
+    let socket_addr = SocketAddr::V4(SocketAddrV4::new(
+        Ipv4Addr::new(ipv4_addr[0], ipv4_addr[1], ipv4_addr[2], ipv4_addr[3]),
+        port,
+    ));
+    warp::serve(routes).run(socket_addr).await;
 }
