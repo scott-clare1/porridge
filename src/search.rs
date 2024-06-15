@@ -32,6 +32,45 @@ impl Ord for Neighbour {
     }
 }
 
+struct KLargestNeighboursHeap {
+    heap: BinaryHeap<Neighbour>,
+    k: usize,
+}
+
+impl KLargestNeighboursHeap {
+    fn new(k: usize) -> Self {
+        Self {
+            heap: BinaryHeap::new(),
+            k,
+        }
+    }
+
+    fn push(&mut self, neighbour: Neighbour) {
+        if self.len() < self.k {
+            self.heap.push(neighbour);
+        } else if neighbour.similarity > self.peek().unwrap().similarity {
+            self.pop();
+            self.heap.push(neighbour);
+        }
+    }
+
+    fn pop(&mut self) -> Option<Neighbour> {
+        self.heap.pop()
+    }
+
+    fn peek(&self) -> Option<&Neighbour> {
+        self.heap.peek()
+    }
+
+    fn len(&self) -> usize {
+        self.heap.len()
+    }
+
+    fn into_sorted_vec(self) -> Vec<Neighbour> {
+        self.heap.into_sorted_vec()
+    }
+}
+
 #[derive(Clone)]
 pub struct KNN {
     pub database: Database,
@@ -48,22 +87,8 @@ impl KNN {
         }
     }
 
-    fn insert_neighbour(
-        &self,
-        mut heap: BinaryHeap<Neighbour>,
-        neighour: Neighbour,
-    ) -> BinaryHeap<Neighbour> {
-        if heap.len() < self.k {
-            heap.push(neighour);
-        } else if neighour.similarity > heap.peek().unwrap().similarity {
-            heap.pop();
-            heap.push(neighour);
-        }
-        heap
-    }
-
     pub fn search(&self, query_vector: &Embedding) -> Vec<Neighbour> {
-        let mut heap: BinaryHeap<Neighbour> = BinaryHeap::new();
+        let mut heap: KLargestNeighboursHeap = KLargestNeighboursHeap::new(self.k);
         let database = self.database.lock().unwrap();
         for (uuid, vector) in database.iter() {
             let similarity = self.metric.similarity(&vector.embeddings, query_vector);
@@ -72,7 +97,7 @@ impl KNN {
                 similarity,
             };
 
-            heap = self.insert_neighbour(heap, neighbour);
+            heap.push(neighbour);
         }
         heap.into_sorted_vec()
     }
@@ -82,9 +107,6 @@ impl KNN {
 mod test_knn {
 
     use super::*;
-    use crate::similarity::CosineSimilarity;
-    use std::collections::HashMap;
-    use std::sync::{Arc, Mutex};
 
     #[test]
     fn test_partial_ord() {
@@ -101,31 +123,19 @@ mod test_knn {
 
     #[test]
     fn test_insert_neighbour_to_empty_heap() {
-        let database: Database = Arc::new(Mutex::new(HashMap::new()));
-        let search = KNN {
-            database,
-            k: 2 as usize,
-            metric: MetricType::Cosine(CosineSimilarity),
-        };
-        let heap: BinaryHeap<Neighbour> = BinaryHeap::new();
+        let mut heap: KLargestNeighboursHeap = KLargestNeighboursHeap::new(2 as usize);
         let neighbour = Neighbour {
             uuid: Uuid::new_v4(),
             similarity: 0.1,
         };
-        let actual_heap = search.insert_neighbour(heap, neighbour);
-        assert_eq!(1, actual_heap.len());
-        assert_eq!(0.1, actual_heap.peek().unwrap().similarity)
+        heap.push(neighbour);
+        assert_eq!(1, heap.len());
+        assert_eq!(0.1, heap.peek().unwrap().similarity)
     }
 
     #[test]
     fn test_insert_neighbour_to_non_empty_heap() {
-        let database: Database = Arc::new(Mutex::new(HashMap::new()));
-        let search = KNN {
-            database,
-            k: 2 as usize,
-            metric: MetricType::Cosine(CosineSimilarity),
-        };
-        let mut heap: BinaryHeap<Neighbour> = BinaryHeap::new();
+        let mut heap: KLargestNeighboursHeap = KLargestNeighboursHeap::new(2 as usize);
         let id = Uuid::new_v4();
         heap.push(Neighbour {
             uuid: id,
@@ -135,20 +145,14 @@ mod test_knn {
             uuid: Uuid::new_v4(),
             similarity: 0.2,
         };
-        let actual_heap = search.insert_neighbour(heap, neighbour);
-        assert_eq!(2, actual_heap.len());
-        assert_eq!(0.1, actual_heap.peek().unwrap().similarity);
+        heap.push(neighbour);
+        assert_eq!(2, heap.len());
+        assert_eq!(0.1, heap.peek().unwrap().similarity);
     }
 
     #[test]
     fn test_insert_neighbour_into_full_heap() {
-        let database: Database = Arc::new(Mutex::new(HashMap::new()));
-        let search = KNN {
-            database,
-            k: 2 as usize,
-            metric: MetricType::Cosine(CosineSimilarity),
-        };
-        let mut heap: BinaryHeap<Neighbour> = BinaryHeap::new();
+        let mut heap: KLargestNeighboursHeap = KLargestNeighboursHeap::new(2 as usize);
         let id = Uuid::new_v4();
         heap.push(Neighbour {
             uuid: id,
@@ -162,20 +166,14 @@ mod test_knn {
             uuid: Uuid::new_v4(),
             similarity: 0.6,
         };
-        let actual_heap = search.insert_neighbour(heap, neighbour);
-        assert_eq!(2, actual_heap.len());
-        assert_eq!(0.5, actual_heap.peek().unwrap().similarity);
+        heap.push(neighbour);
+        assert_eq!(2, heap.len());
+        assert_eq!(0.5, heap.peek().unwrap().similarity);
     }
 
     #[test]
     fn test_insert_non_largest_neighbour_into_full_heap() {
-        let database: Database = Arc::new(Mutex::new(HashMap::new()));
-        let search = KNN {
-            database,
-            k: 2 as usize,
-            metric: MetricType::Cosine(CosineSimilarity),
-        };
-        let mut heap: BinaryHeap<Neighbour> = BinaryHeap::new();
+        let mut heap: KLargestNeighboursHeap = KLargestNeighboursHeap::new(2 as usize);
         let id = Uuid::new_v4();
         heap.push(Neighbour {
             uuid: id,
@@ -189,8 +187,8 @@ mod test_knn {
             uuid: Uuid::new_v4(),
             similarity: 0.3,
         };
-        let actual_heap = search.insert_neighbour(heap, neighbour);
-        assert_eq!(2, actual_heap.len());
-        assert_eq!(0.3, actual_heap.peek().unwrap().similarity);
+        heap.push(neighbour);
+        assert_eq!(2, heap.len());
+        assert_eq!(0.3, heap.peek().unwrap().similarity);
     }
 }
