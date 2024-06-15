@@ -1,9 +1,23 @@
 use crate::types::Embedding;
 
+#[derive(Clone)]
+pub enum MetricType {
+    Cosine(CosineSimilarity),
+}
+
+impl SimilarityMetric for MetricType {
+    fn similarity(&self, a: &Embedding, b: &Embedding) -> f32 {
+        match self {
+            MetricType::Cosine(metric) => metric.similarity(&a, &b),
+        }
+    }
+}
+
 pub trait SimilarityMetric {
     fn similarity(&self, a: &Embedding, b: &Embedding) -> f32;
 }
 
+#[derive(Clone)]
 pub struct CosineSimilarity;
 
 impl CosineSimilarity {
