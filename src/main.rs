@@ -54,7 +54,7 @@ async fn main() {
     let knn_filter = warp::any().map(move || search.clone());
 
     let add_vector = warp::post()
-        .and(path("vectors"))
+        .and(path("store"))
         .and(warp::body::json())
         .and(knn_filter.clone())
         .map(|new_entries: Vec<EmbeddingEntry>, search: Arc<KNN>| {
@@ -69,7 +69,7 @@ async fn main() {
         });
 
     let get_vector = warp::get()
-        .and(path("vectors"))
+        .and(path("retrieve"))
         .and(path::param::<Uuid>())
         .and(knn_filter.clone())
         .map(|id: Uuid, search: Arc<KNN>| {
@@ -91,8 +91,13 @@ async fn main() {
         .and(warp::body::json())
         .and(knn_filter.clone())
         .map(|query_vector: EmbeddingEntry, search: Arc<KNN>| {
-            let nearest_neighbours = search.search(&query_vector.embeddings);
-            json(&nearest_neighbours)
+            if search.database.lock().unwrap().is_empty() {
+                with_status(json(&"Vector store is empty - you need to upload documents with the /store endpoint."), StatusCode::NO_CONTENT)
+            }
+            else {
+                let nearest_neighbours = search.search(&query_vector.embeddings);
+                with_status(json(&nearest_neighbours), StatusCode::OK)
+            }
         });
 
     let heartbeat = warp::get().and(path("heartbeat")).map(|| {
