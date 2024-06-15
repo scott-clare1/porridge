@@ -1,6 +1,6 @@
 # Porridge 🥣
 
-A simple in-memory vector store written in Rust.
+A simple in-memory vector store written in Rust, performing K-Nearest Neighbour search.
 
 ## Getting Started
 Build the server with Docker:
@@ -47,5 +47,18 @@ docker run -p 5000:5000 porridge
 }
 ```
 
+## Configuration
+Settings for the server can be configured with environment variables:
+- `HOST`: The host for the server, e.g., `0.0.0.0`.
+- `PORT`: The port for the server, e.g., `5000`.
+- `SIMILARITY_METRIC`: The similarity metric used for search (currently only cosine similarity supported). Options: [`cosine`].
+- `K_NEAREST_NEIGHBOURS`: The number of nearest neighbours to return, e.g., `5`.
+
 ## Clients
 - Python: in the works.
+
+## Roadmap:
+- Persistent storage options.
+- Approximate nearest neighbours.
+- More options for similarity metrics.
+- Python client.
