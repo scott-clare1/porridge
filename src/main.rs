@@ -9,6 +9,7 @@ use crate::similarity::CosineSimilarity;
 use crate::types::{Database, EmbeddingEntry};
 use similarity::MetricType;
 use std::collections::HashMap;
+use std::iter::Map;
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
@@ -53,7 +54,7 @@ async fn main() {
 
     let knn_filter = warp::any().map(move || search.clone());
 
-    let add_vector = warp::post()
+    let store = warp::post()
         .and(path("store"))
         .and(warp::body::json())
         .and(knn_filter.clone())
@@ -68,7 +69,7 @@ async fn main() {
             json(&response_ids)
         });
 
-    let get_vector = warp::get()
+    let retrieve = warp::get()
         .and(path("retrieve"))
         .and(path::param::<Uuid>())
         .and(knn_filter.clone())
@@ -86,7 +87,7 @@ async fn main() {
             }
         });
 
-    let search_database = warp::post()
+    let search = warp::post()
         .and(path("search"))
         .and(warp::body::json())
         .and(knn_filter.clone())
@@ -107,7 +108,7 @@ async fn main() {
         )
     });
 
-    let routes = add_vector.or(get_vector).or(search_database).or(heartbeat);
+    let routes = store.or(retrieve).or(search).or(heartbeat);
 
     warp::serve(routes).run(socket_addr).await;
 }
