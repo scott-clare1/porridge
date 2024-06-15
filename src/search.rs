@@ -34,7 +34,7 @@ impl Ord for Neighbour {
 
 #[derive(Clone)]
 pub struct KNN {
-    database: Database,
+    pub database: Database,
     k: usize,
     metric: MetricType,
 }
@@ -64,9 +64,9 @@ impl KNN {
 
     pub fn search(&self, query_vector: &Embedding) -> Vec<Neighbour> {
         let mut heap: BinaryHeap<Neighbour> = BinaryHeap::new();
-        let database = self.database.contents.lock().unwrap();
+        let database = self.database.lock().unwrap();
         for (uuid, vector) in database.iter() {
-            let similarity = self.metric.similarity(&vector.values, query_vector);
+            let similarity = self.metric.similarity(&vector.embeddings, query_vector);
             let neighbour = Neighbour {
                 uuid: *uuid,
                 similarity,
@@ -101,9 +101,7 @@ mod test_knn {
 
     #[test]
     fn test_insert_neighbour_to_empty_heap() {
-        let database: Database = Database {
-            contents: Arc::new(Mutex::new(HashMap::new())),
-        };
+        let database: Database = Arc::new(Mutex::new(HashMap::new()));
         let search = KNN {
             database,
             k: 2 as usize,
@@ -121,9 +119,7 @@ mod test_knn {
 
     #[test]
     fn test_insert_neighbour_to_non_empty_heap() {
-        let database: Database = Database {
-            contents: Arc::new(Mutex::new(HashMap::new())),
-        };
+        let database: Database = Arc::new(Mutex::new(HashMap::new()));
         let search = KNN {
             database,
             k: 2 as usize,
@@ -146,9 +142,7 @@ mod test_knn {
 
     #[test]
     fn test_insert_neighbour_into_full_heap() {
-        let database: Database = Database {
-            contents: Arc::new(Mutex::new(HashMap::new())),
-        };
+        let database: Database = Arc::new(Mutex::new(HashMap::new()));
         let search = KNN {
             database,
             k: 2 as usize,
@@ -175,9 +169,7 @@ mod test_knn {
 
     #[test]
     fn test_insert_non_largest_neighbour_into_full_heap() {
-        let database: Database = Database {
-            contents: Arc::new(Mutex::new(HashMap::new())),
-        };
+        let database: Database = Arc::new(Mutex::new(HashMap::new()));
         let search = KNN {
             database,
             k: 2 as usize,

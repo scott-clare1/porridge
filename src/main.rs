@@ -39,9 +39,7 @@ async fn main() {
         config.host, config.port
     );
 
-    let db = Database {
-        contents: Arc::new(Mutex::new(HashMap::new())),
-    };
+    let database: Database = Arc::new(Mutex::new(HashMap::new()));
 
     let similarity_metric = match config.similarity_metric.as_str() {
         "cosine" => MetricType::Cosine(CosineSimilarity),
@@ -51,16 +49,16 @@ async fn main() {
         }
     };
 
-    let search = Arc::new(KNN::new(db.clone(), k_neighbours, similarity_metric));
+    let search = Arc::new(KNN::new(database, k_neighbours, similarity_metric));
 
-    let db_filter = warp::any().map(move || db.clone());
+    let knn_filter = warp::any().map(move || search.clone());
 
     let add_vector = warp::post()
         .and(path("vectors"))
         .and(warp::body::json())
-        .and(db_filter.clone())
-        .map(|new_entries: Vec<EmbeddingEntry>, db: Database| {
-            let mut vectors = db.contents.lock().unwrap();
+        .and(knn_filter.clone())
+        .map(|new_entries: Vec<EmbeddingEntry>, search: Arc<KNN>| {
+            let mut vectors = search.database.lock().unwrap();
             let mut response_ids = vec![];
             for entry in new_entries.iter() {
                 let id = Uuid::new_v4();
@@ -73,9 +71,9 @@ async fn main() {
     let get_vector = warp::get()
         .and(path("vectors"))
         .and(path::param::<Uuid>())
-        .and(db_filter.clone())
-        .map(|id: Uuid, db: Database| {
-            let vectors = db.contents.lock().unwrap();
+        .and(knn_filter.clone())
+        .map(|id: Uuid, search: Arc<KNN>| {
+            let vectors = search.database.lock().unwrap();
             if let Some(vector) = vectors.get(&id) {
                 with_status(json(vector), StatusCode::OK)
             } else {
@@ -88,14 +86,12 @@ async fn main() {
             }
         });
 
-    let knn_filter = warp::any().map(move || search.clone());
-
     let search_database = warp::post()
         .and(path("search"))
         .and(warp::body::json())
         .and(knn_filter.clone())
         .map(|query_vector: EmbeddingEntry, search: Arc<KNN>| {
-            let nearest_neighbours = search.search(&query_vector.values);
+            let nearest_neighbours = search.search(&query_vector.embeddings);
             json(&nearest_neighbours)
         });
 
