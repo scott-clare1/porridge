@@ -102,7 +102,7 @@ async fn main() {
         )
     });
 
-    let routes = warp::get().and(add_vector.or(get_vector).or(search_database).or(heartbeat));
+    let routes = add_vector.or(get_vector).or(search_database).or(heartbeat);
 
     warp::serve(routes).run(socket_addr).await;
 }
