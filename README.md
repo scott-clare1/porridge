@@ -3,7 +3,6 @@
 A simple in-memory vector store written in Rust.
 
 ## Getting Started
----
 Build the server with Docker:
 ```bash
 docker build -t porridge .
@@ -14,7 +13,6 @@ docker run -p 5000:5000 porridge
 ```
 
 ## Endpoints
----
 - `/store` - Post embeddings with the following schema:
 ```json
 [
@@ -50,5 +48,4 @@ docker run -p 5000:5000 porridge
 ```
 
 ## Clients
----
 - Python: in the works.
