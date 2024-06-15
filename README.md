@@ -62,3 +62,4 @@ Settings for the server can be configured with environment variables:
 - Approximate nearest neighbours.
 - More options for similarity metrics.
 - Python client.
+- Integration tests.
