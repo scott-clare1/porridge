@@ -1,12 +1,14 @@
 # Step 1: Build the Rust project
 FROM rust:latest as builder
 
+WORKDIR /usr/src/
+RUN rustup target add x86_64-unknown-linux-musl
+
 RUN USER=root cargo new --bin porridge
-WORKDIR /porridge
+WORKDIR /usr/src/porridge
 
 # copy over your manifests
-COPY ./Cargo.lock ./Cargo.lock
-COPY ./Cargo.toml ./Cargo.toml
+COPY Cargo.toml Cargo.lock ./
 
 # this build step will cache your dependencies
 RUN cargo build --release
@@ -16,14 +18,13 @@ RUN rm src/*.rs
 COPY ./src ./src
 
 # build for release
-RUN rm ./target/release/deps/porridge*
-RUN cargo build --release
+RUN cargo install --target x86_64-unknown-linux-musl --path .
 
 # our final base
-FROM rust:latest
+FROM scratch
 
 # copy the build artifact from the build stage
-COPY --from=builder /porridge/target/release/porridge .
+COPY --from=builder /usr/local/cargo/bin/porridge .
 
 EXPOSE 3030
 
