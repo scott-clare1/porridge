@@ -27,6 +27,7 @@ async fn main() {
     };
 
     let port = config.port.parse::<u16>().unwrap();
+    let k_neighbours = config.k_neighbours.parse::<usize>().unwrap();
 
     let socket_addr = SocketAddr::V4(SocketAddrV4::new(
         Ipv4Addr::new(ipv4_addr[0], ipv4_addr[1], ipv4_addr[2], ipv4_addr[3]),
@@ -50,7 +51,7 @@ async fn main() {
         }
     };
 
-    let search = Arc::new(KNN::new(db.clone(), 2 as usize, similarity_metric));
+    let search = Arc::new(KNN::new(db.clone(), k_neighbours, similarity_metric));
 
     let db_filter = warp::any().map(move || db.clone());
 
