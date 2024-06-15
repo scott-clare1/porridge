@@ -9,7 +9,6 @@ use crate::similarity::CosineSimilarity;
 use crate::types::{Database, EmbeddingEntry};
 use similarity::MetricType;
 use std::collections::HashMap;
-use std::iter::Map;
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
