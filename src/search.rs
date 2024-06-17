@@ -1,36 +1,6 @@
-use serde::Serialize;
-use uuid::Uuid;
-
 use crate::similarity::{MetricType, SimilarityMetric};
-use crate::types::{Database, Embedding};
-use std::cmp::Ordering;
+use crate::types::{Database, Embedding, Neighbour};
 use std::collections::BinaryHeap;
-
-#[derive(Serialize, Clone, Debug)]
-pub struct Neighbour {
-    pub uuid: Uuid,
-    similarity: f32,
-}
-
-impl Eq for Neighbour {}
-
-impl PartialEq for Neighbour {
-    fn eq(&self, other: &Self) -> bool {
-        self.similarity == other.similarity
-    }
-}
-
-impl PartialOrd for Neighbour {
-    fn partial_cmp(&self, other: &Neighbour) -> Option<Ordering> {
-        other.similarity.partial_cmp(&self.similarity)
-    }
-}
-
-impl Ord for Neighbour {
-    fn cmp(&self, other: &Neighbour) -> Ordering {
-        self.cmp(other)
-    }
-}
 
 struct KLargestNeighboursHeap {
     heap: BinaryHeap<Neighbour>,
@@ -107,19 +77,7 @@ impl KNN {
 mod test_knn {
 
     use super::*;
-
-    #[test]
-    fn test_partial_ord() {
-        let neighbour_a = Neighbour {
-            uuid: Uuid::new_v4(),
-            similarity: 0.9,
-        };
-        let neighbour_b = Neighbour {
-            uuid: Uuid::new_v4(),
-            similarity: 0.8,
-        };
-        assert!(neighbour_a < neighbour_b);
-    }
+    use uuid::Uuid;
 
     #[test]
     fn test_insert_neighbour_to_empty_heap() {
