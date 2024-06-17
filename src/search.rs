@@ -1,45 +1,6 @@
+use crate::data_structures::KLargestNeighboursHeap;
 use crate::similarity::{MetricType, SimilarityMetric};
 use crate::types::{Database, Embedding, Neighbour};
-use std::collections::BinaryHeap;
-
-struct KLargestNeighboursHeap {
-    heap: BinaryHeap<Neighbour>,
-    k: usize,
-}
-
-impl KLargestNeighboursHeap {
-    fn new(k: usize) -> Self {
-        Self {
-            heap: BinaryHeap::new(),
-            k,
-        }
-    }
-
-    fn push(&mut self, neighbour: Neighbour) {
-        if self.len() < self.k {
-            self.heap.push(neighbour);
-        } else if neighbour.similarity > self.peek().unwrap().similarity {
-            self.pop();
-            self.heap.push(neighbour);
-        }
-    }
-
-    fn pop(&mut self) -> Option<Neighbour> {
-        self.heap.pop()
-    }
-
-    fn peek(&self) -> Option<&Neighbour> {
-        self.heap.peek()
-    }
-
-    fn len(&self) -> usize {
-        self.heap.len()
-    }
-
-    fn into_sorted_vec(self) -> Vec<Neighbour> {
-        self.heap.into_sorted_vec()
-    }
-}
 
 #[derive(Clone)]
 pub struct KNN {
