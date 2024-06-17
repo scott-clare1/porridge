@@ -53,6 +53,7 @@ Settings for the server can be configured with environment variables:
 - `PORT`: The port for the server, e.g., `5000`.
 - `SIMILARITY_METRIC`: The similarity metric used for search (currently only cosine similarity supported). Options: [`cosine`].
 - `K_NEAREST_NEIGHBOURS`: The number of nearest neighbours to return, e.g., `5`.
+- `SEARCH_ALGORITHM`: The search algorithm to use to find nearest neighbours (currently only support brute-force search). Options: [`brute`].
 
 ## Clients
 - Python: in the works.
