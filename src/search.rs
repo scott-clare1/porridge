@@ -1,26 +1,37 @@
 use crate::data_structures::KLargestNeighboursHeap;
+use crate::nearest_neighbours::KNNInterface;
 use crate::similarity::{MetricType, SimilarityMetric};
 use crate::types::{Database, Embedding, Neighbour};
 
 #[derive(Clone)]
-pub struct KNN {
-    pub database: Database,
+pub enum SearchAlgorithm {
+    Brute(BruteForce),
+}
+
+impl KNNInterface for SearchAlgorithm {
+    fn search(&self, database: &Database, query_vector: &Embedding) -> Vec<Neighbour> {
+        match self {
+            SearchAlgorithm::Brute(method) => method.search(&database, &query_vector),
+        }
+    }
+}
+
+#[derive(Clone)]
+pub struct BruteForce {
     k: usize,
     metric: MetricType,
 }
 
-impl KNN {
-    pub fn new(database: Database, k: usize, metric: MetricType) -> Self {
-        Self {
-            database,
-            k,
-            metric,
-        }
+impl BruteForce {
+    pub fn new(k: usize, metric: MetricType) -> Self {
+        Self { k, metric }
     }
+}
 
-    pub fn search(&self, query_vector: &Embedding) -> Vec<Neighbour> {
+impl KNNInterface for BruteForce {
+    fn search(&self, database: &Database, query_vector: &Embedding) -> Vec<Neighbour> {
         let mut heap: KLargestNeighboursHeap = KLargestNeighboursHeap::new(self.k);
-        let database = self.database.lock().unwrap();
+        let database = database.lock().unwrap();
         for (uuid, vector) in database.iter() {
             let similarity = self.metric.similarity(&vector.embeddings, query_vector);
             let neighbour = Neighbour {
