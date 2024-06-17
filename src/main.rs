@@ -100,6 +100,25 @@ async fn main() {
             }
         });
 
+    let delete = warp::delete()
+        .and(path("delete"))
+        .and(path::param::<Uuid>())
+        .and(knn_filter.clone())
+        .map(|id: Uuid, search: Arc<KNN>| {
+            let mut vectors = search.database.lock().unwrap();
+            vectors.remove(&id);
+            json(&format!("Removed entry: {}", id))
+        });
+
+    let delete_all = warp::delete()
+        .and(path("delete"))
+        .and(knn_filter.clone())
+        .map(|search: Arc<KNN>| {
+            let mut vectors = search.database.lock().unwrap();
+            vectors.drain();
+            json(&"Removed all entries from database.")
+        });
+
     let heartbeat = warp::get().and(path("heartbeat")).map(|| {
         with_status(
             json(&serde_json::json!({"status": "I am alive"})),
@@ -107,7 +126,12 @@ async fn main() {
         )
     });
 
-    let routes = store.or(retrieve).or(search).or(heartbeat);
+    let routes = store
+        .or(retrieve)
+        .or(search)
+        .or(heartbeat)
+        .or(delete)
+        .or(delete_all);
 
     warp::serve(routes).run(socket_addr).await;
 }
