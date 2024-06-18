@@ -1,10 +1,13 @@
+mod data_structures;
+mod nearest_neighbours;
 mod search;
 mod settings;
 mod similarity;
 mod types;
 
-use crate::search::KNN;
-use crate::settings::{Settings, DEFAULT_SIMILARITY_METRIC};
+use crate::nearest_neighbours::KNNAlgortihm;
+use crate::search::{BruteForce, SearchAlgorithm};
+use crate::settings::{Settings, DEFAULT_SEARCH_ALGORITHM, DEFAULT_SIMILARITY_METRIC};
 use crate::similarity::CosineSimilarity;
 use crate::types::{Database, EmbeddingEntry};
 use similarity::MetricType;
@@ -44,12 +47,24 @@ async fn main() {
     let similarity_metric = match config.similarity_metric.as_str() {
         "cosine" => MetricType::Cosine(CosineSimilarity),
         _ => {
-            println!("Invalid similarity metric given falling back to default: {DEFAULT_SIMILARITY_METRIC}");
+            println!("Invalid similarity metric given falling back to default: {DEFAULT_SEARCH_ALGORITHM}");
             MetricType::Cosine(CosineSimilarity)
         }
     };
 
-    let search = Arc::new(KNN::new(database, k_neighbours, similarity_metric));
+    let search_algorithm = match config.search_algorithm.as_str() {
+        "brute" => {
+            let algorithm = BruteForce::new(k_neighbours, similarity_metric);
+            SearchAlgorithm::Brute(algorithm)
+        }
+        _ => {
+            println!("Invalid search algorithm given falling back to default: {DEFAULT_SIMILARITY_METRIC}");
+            let algorithm = BruteForce::new(k_neighbours, similarity_metric);
+            SearchAlgorithm::Brute(algorithm)
+        }
+    };
+
+    let search = Arc::new(KNNAlgortihm::new(database, search_algorithm));
 
     let knn_filter = warp::any().map(move || search.clone());
 
@@ -57,22 +72,24 @@ async fn main() {
         .and(path("store"))
         .and(warp::body::json())
         .and(knn_filter.clone())
-        .map(|new_entries: Vec<EmbeddingEntry>, search: Arc<KNN>| {
-            let mut vectors = search.database.lock().unwrap();
-            let mut response_ids = vec![];
-            for entry in new_entries.iter() {
-                let id = Uuid::new_v4();
-                vectors.insert(id, entry.clone());
-                response_ids.push(id);
-            }
-            json(&response_ids)
-        });
+        .map(
+            |new_entries: Vec<EmbeddingEntry>, search: Arc<KNNAlgortihm>| {
+                let mut vectors = search.database.lock().unwrap();
+                let mut response_ids = vec![];
+                for entry in new_entries.iter() {
+                    let id = Uuid::new_v4();
+                    vectors.insert(id, entry.clone());
+                    response_ids.push(id);
+                }
+                json(&response_ids)
+            },
+        );
 
     let retrieve = warp::get()
         .and(path("retrieve"))
         .and(path::param::<Uuid>())
         .and(knn_filter.clone())
-        .map(|id: Uuid, search: Arc<KNN>| {
+        .map(|id: Uuid, search: Arc<KNNAlgortihm>| {
             let vectors = search.database.lock().unwrap();
             if let Some(vector) = vectors.get(&id) {
                 with_status(json(vector), StatusCode::OK)
@@ -90,7 +107,7 @@ async fn main() {
         .and(path("search"))
         .and(warp::body::json())
         .and(knn_filter.clone())
-        .map(|query_vector: EmbeddingEntry, search: Arc<KNN>| {
+        .map(|query_vector: EmbeddingEntry, search: Arc<KNNAlgortihm>| {
             if search.database.lock().unwrap().is_empty() {
                 with_status(json(&"Vector store is empty - you need to upload documents with the /store endpoint."), StatusCode::NO_CONTENT)
             }

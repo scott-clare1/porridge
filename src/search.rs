@@ -1,95 +1,37 @@
-use serde::Serialize;
-use uuid::Uuid;
-
+use crate::data_structures::KLargestNeighboursHeap;
+use crate::nearest_neighbours::KNNInterface;
 use crate::similarity::{MetricType, SimilarityMetric};
-use crate::types::{Database, Embedding};
-use std::cmp::Ordering;
-use std::collections::BinaryHeap;
+use crate::types::{Database, Embedding, Neighbour};
 
-#[derive(Serialize, Clone, Debug)]
-pub struct Neighbour {
-    pub uuid: Uuid,
-    similarity: f32,
+#[derive(Clone)]
+pub enum SearchAlgorithm {
+    Brute(BruteForce),
 }
 
-impl Eq for Neighbour {}
-
-impl PartialEq for Neighbour {
-    fn eq(&self, other: &Self) -> bool {
-        self.similarity == other.similarity
-    }
-}
-
-impl PartialOrd for Neighbour {
-    fn partial_cmp(&self, other: &Neighbour) -> Option<Ordering> {
-        other.similarity.partial_cmp(&self.similarity)
-    }
-}
-
-impl Ord for Neighbour {
-    fn cmp(&self, other: &Neighbour) -> Ordering {
-        self.cmp(other)
-    }
-}
-
-struct KLargestNeighboursHeap {
-    heap: BinaryHeap<Neighbour>,
-    k: usize,
-}
-
-impl KLargestNeighboursHeap {
-    fn new(k: usize) -> Self {
-        Self {
-            heap: BinaryHeap::new(),
-            k,
+impl KNNInterface for SearchAlgorithm {
+    fn search(&self, database: &Database, query_vector: &Embedding) -> Vec<Neighbour> {
+        match self {
+            SearchAlgorithm::Brute(method) => method.search(&database, &query_vector),
         }
-    }
-
-    fn push(&mut self, neighbour: Neighbour) {
-        if self.len() < self.k {
-            self.heap.push(neighbour);
-        } else if neighbour.similarity > self.peek().unwrap().similarity {
-            self.pop();
-            self.heap.push(neighbour);
-        }
-    }
-
-    fn pop(&mut self) -> Option<Neighbour> {
-        self.heap.pop()
-    }
-
-    fn peek(&self) -> Option<&Neighbour> {
-        self.heap.peek()
-    }
-
-    fn len(&self) -> usize {
-        self.heap.len()
-    }
-
-    fn into_sorted_vec(self) -> Vec<Neighbour> {
-        self.heap.into_sorted_vec()
     }
 }
 
 #[derive(Clone)]
-pub struct KNN {
-    pub database: Database,
+pub struct BruteForce {
     k: usize,
     metric: MetricType,
 }
 
-impl KNN {
-    pub fn new(database: Database, k: usize, metric: MetricType) -> Self {
-        Self {
-            database,
-            k,
-            metric,
-        }
+impl BruteForce {
+    pub fn new(k: usize, metric: MetricType) -> Self {
+        Self { k, metric }
     }
+}
 
-    pub fn search(&self, query_vector: &Embedding) -> Vec<Neighbour> {
+impl KNNInterface for BruteForce {
+    fn search(&self, database: &Database, query_vector: &Embedding) -> Vec<Neighbour> {
         let mut heap: KLargestNeighboursHeap = KLargestNeighboursHeap::new(self.k);
-        let database = self.database.lock().unwrap();
+        let database = database.lock().unwrap();
         for (uuid, vector) in database.iter() {
             let similarity = self.metric.similarity(&vector.embeddings, query_vector);
             let neighbour = Neighbour {
@@ -107,19 +49,7 @@ impl KNN {
 mod test_knn {
 
     use super::*;
-
-    #[test]
-    fn test_partial_ord() {
-        let neighbour_a = Neighbour {
-            uuid: Uuid::new_v4(),
-            similarity: 0.9,
-        };
-        let neighbour_b = Neighbour {
-            uuid: Uuid::new_v4(),
-            similarity: 0.8,
-        };
-        assert!(neighbour_a < neighbour_b);
-    }
+    use uuid::Uuid;
 
     #[test]
     fn test_insert_neighbour_to_empty_heap() {
