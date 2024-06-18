@@ -121,7 +121,7 @@ async fn main() {
         .and(path("delete"))
         .and(path::param::<Uuid>())
         .and(knn_filter.clone())
-        .map(|id: Uuid, search: Arc<KNN>| {
+        .map(|id: Uuid, search: Arc<KNNAlgortihm>| {
             let mut vectors = search.database.lock().unwrap();
             vectors.remove(&id);
             json(&format!("Removed entry: {}", id))
@@ -130,7 +130,7 @@ async fn main() {
     let delete_all = warp::delete()
         .and(path("delete"))
         .and(knn_filter.clone())
-        .map(|search: Arc<KNN>| {
+        .map(|search: Arc<KNNAlgortihm>| {
             let mut vectors = search.database.lock().unwrap();
             vectors.drain();
             json(&"Removed all entries from database.")
