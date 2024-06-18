@@ -46,6 +46,7 @@ docker run -p 5000:5000 porridge
   "status": "I am alive."
 }
 ```
+- `/delete` - Entries in the database can be removed either by UUID as a parameter to the endpoint - or the whole dataset without a parameter.
 
 ## Configuration
 Settings for the server can be configured with environment variables:
