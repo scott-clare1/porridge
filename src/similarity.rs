@@ -68,5 +68,9 @@ mod similarity_tests {
     }
 
     #[test]
-    fn test_caclulate() {}
+    fn test_similarity() {
+        let v1 = vec![0.1, 0.2, 0.3, 0.4, 0.5];
+        let v2 = vec![0.9, 0.9, 0.9, 0.9, 0.9];
+        assert_eq!(0.9045339, CosineSimilarity.similarity(&v1, &v2))
+    }
 }
